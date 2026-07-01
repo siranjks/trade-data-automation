@@ -1,0 +1,93 @@
+{
+  "updatedAt": "2026-05-20T03:35:11.314Z",
+  "createdAt": "2026-05-20T03:35:11.314Z",
+  "id": "i4wmqxk7doGhHNbm",
+  "name": "Tool - SQLite Query",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            }
+          ]
+        }
+      },
+      "id": "73a52235-923c-47b7-aba1-c0cea1621dab",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "database": "C:/n8n-local/data/model_database.db",
+        "operation": "executeQuery",
+        "query": "={{ $node[\"When Executed by Another Workflow\"].json.query }}"
+      },
+      "type": "n8n-nodes-sqlite.sqlite",
+      "typeVersion": 1,
+      "position": [
+        288,
+        0
+      ],
+      "id": "5c66c136-4904-43eb-9acd-0e7826b88a71",
+      "name": "SQLite1"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "SQLite1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "bd1a801f-c302-43ae-b984-47de8142ed53",
+  "activeVersionId": null,
+  "versionCounter": 16,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-20T03:35:11.314Z",
+      "createdAt": "2026-05-20T03:35:11.314Z",
+      "role": "workflow:owner",
+      "workflowId": "i4wmqxk7doGhHNbm",
+      "projectId": "ySMohz6WFKH5tAbg",
+      "project": {
+        "updatedAt": "2026-05-19T07:10:33.827Z",
+        "createdAt": "2026-05-19T07:09:02.777Z",
+        "id": "ySMohz6WFKH5tAbg",
+        "name": "Siranj ks <siranj.sasi@rohde-schwarz.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "cc3354fe-08cb-411e-8459-4a7fa20e3c8b"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version bd1a801f",
+    "description": ""
+  }
+}

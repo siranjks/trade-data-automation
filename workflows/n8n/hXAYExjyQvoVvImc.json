@@ -1,0 +1,598 @@
+{
+  "updatedAt": "2026-06-25T07:03:46.460Z",
+  "createdAt": "2026-06-10T06:19:19.507Z",
+  "id": "hXAYExjyQvoVvImc",
+  "name": "INSERT_MODELS",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst cleanItems = items.map(item => {\n    // 1. Grab the raw data\n    let rawModel = item.json.Model || \"\";\n    let rawMfg = item.json.Manufacturer || \"\";\n    let rawType = item.json.Product_Type || \"\";\n\n    // 2. Trim invisible spaces and force to UPPERCASE\n    return {\n        json: {\n            ...item.json,\n            Model_Number: rawModel.toString().trim().toUpperCase(),\n            Primary_Manufacturer: rawMfg.toString().trim().toUpperCase(),\n            Primary_Product_Type: rawType.toString().trim().toUpperCase()\n        }\n    };\n});\n\nreturn cleanItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -80
+      ],
+      "id": "d2658251-23bd-4959-bba6-12c804e2d8f3",
+      "name": "Renaming Cols"
+    },
+    {
+      "parameters": {
+        "database": "C:/n8n-local/data/model_database.db",
+        "table": "Models",
+        "columns": "Model_Number,Primary_Manufacturer,Primary_Product_Type"
+      },
+      "type": "n8n-nodes-sqlite.sqlite",
+      "typeVersion": 1,
+      "position": [
+        944,
+        -336
+      ],
+      "id": "61f3d918-6ae5-4e67-943f-316f41116da4",
+      "name": "INSERT-NEW-MODELS",
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput",
+      "notes": "INSERT Query works for all the inputs and saves them in db, Checked manually. Error: 'Could not get parameter' - possibly due to frontend code error since it's a community node. Verdict - This is error is safe to ignore!"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "47afece8-f918-4486-84d7-4bf83b0cd2bb",
+              "leftValue": "={{ $json.d.Model }}",
+              "rightValue": "NotFound",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "65c9be95-79a1-4a11-8cc1-bd269ace31a3",
+              "leftValue": "={{ $json.d.Model }}",
+              "rightValue": "notfound",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "19027163-e3e5-447a-8714-d33303dfdceb",
+              "leftValue": "={{ $json.d.Manufacturer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "41d90862-ec07-4b9a-84d8-93762b7bb49d",
+              "leftValue": "={{ $json.d.Manufacturer }}",
+              "rightValue": "notfound",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "d9d75844-b998-4092-b965-e63c307f6c2b",
+              "leftValue": "={{ $json.d.Confidence_Score }}",
+              "rightValue": 0.8,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -272,
+        16
+      ],
+      "id": "09f733ae-772f-407e-bf1d-e11da3700be6",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  return {\n    json: item.json.d\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        16
+      ],
+      "id": "76666424-e105-4e54-8d5f-21f70067f770",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "hXAYExjyQvoVvImc",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/hXAYExjyQvoVvImc",
+          "cachedResultName": "insert"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "d": "={{ $input.item.json }}"
+          },
+          "matchingColumns": [
+            "d"
+          ],
+          "schema": [
+            {
+              "id": "d",
+              "displayName": "d",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        48,
+        -208
+      ],
+      "id": "5201478e-56a0-4b34-b683-cfb00d9e0d64",
+      "name": "Call 'insert'",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "fileSelector": "=C:/n8n-local/data/Inbound/*.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        128,
+        -224
+      ],
+      "id": "28a49ab2-3b9f-4686-a4f5-1d08a81b7a48",
+      "name": "LIST ALL JSONS"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        32
+      ],
+      "id": "13b70ab4-d333-46d9-9371-0bac59fa1928",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "const testData = [\n  {\n    \"row_id\": \"test_row_901\",\n    \"Manufacturer\": \"Shure\",\n    \"Product_Type\": \"Wireless Microphone\",\n    \"Model\": \"ULXD2/SM58\",\n    \"Competitor_Check\": \"Non-SAM\",\n    \"Confidence_Score\": 0.99,\n    \"Match_Reason\": \"Shure ULXD2 is a handheld wireless transmitter\"\n  },\n  {\n    \"row_id\": \"test_row_902\",\n    \"Manufacturer\": \"Korg\",\n    \"Product_Type\": \"Synthesizer\",\n    \"Model\": \"Minilogue XD\",\n    \"Competitor_Check\": \"Non-SAM\",\n    \"Confidence_Score\": 0.95,\n    \"Match_Reason\": \"Korg Minilogue XD is a polyphonic analog synthesizer\"\n  },\n  {\n    \"row_id\": \"test_row_903\",\n    \"Manufacturer\": \"Focusrite\",\n    \"Product_Type\": \"Audio Interface\",\n    \"Model\": \"Scarlett 18i20\",\n    \"Competitor_Check\": \"Non-SAM\",\n    \"Confidence_Score\": 0.97,\n    \"Match_Reason\": \"Focusrite Scarlett is a USB audio interface\"\n  }\n];\n\n// This line forces n8n to split the array into 3 separate, looping items\nreturn testData.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        144
+      ],
+      "id": "51f5047c-e8cc-4477-a17c-a5decface7f4",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "database": "={{ $json.data.modeldb_location }}",
+        "operation": "executeQuery",
+        "query": "={{ $('Loop Over Items').item.json.query }}"
+      },
+      "type": "n8n-nodes-sqlite.sqlite",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        848
+      ],
+      "id": "354258a9-3586-4e00-8ca8-a80f8d2730ea",
+      "name": "SQLite",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        352,
+        688
+      ],
+      "id": "a8110d51-a620-48da-aa20-1a2c1a74e50d",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  // 1. Grab the clean data (handles both flat data or 'd' wrapped data automatically)\n  const data = item.json.d || item.json;\n\n  // 2. Extract and format the specific columns (uppercasing them)\n  const model = data.Model ? String(data.Model).toUpperCase() : \"\";\n  const mfg = data.Manufacturer ? String(data.Manufacturer).toUpperCase() : \"\";\n  const pType = data.Product_Type ? String(data.Product_Type).toUpperCase() : \"\";\n\n  // 3. Escape single quotes to prevent SQL syntax crashes \n  const safeModel = model.replace(/'/g, \"''\");\n  const safeMfg = mfg.replace(/'/g, \"''\");\n  const safePType = pType.replace(/'/g, \"''\");\n\n  // 4. Build the exact SQL Insert statement\n const sqlQuery = `INSERT OR IGNORE INTO Models (Model_Number, Primary_Manufacturer, Primary_Product_Type) VALUES ('${safeModel}', '${safeMfg}', '${safePType}');`;\n\n  // 5. Output only the clean data and the final query\n  return {\n    json: {\n      Model_Number: model,\n      Primary_Manufacturer: mfg,\n      Primary_Product_Type: pType,\n      query: sqlQuery\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        688
+      ],
+      "id": "989d54ed-92c6-4086-b523-96e49f9bc971",
+      "name": "Renaming Cols1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "47afece8-f918-4486-84d7-4bf83b0cd2bb",
+              "leftValue": "={{ $json.Model }}",
+              "rightValue": "NotFound",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "65c9be95-79a1-4a11-8cc1-bd269ace31a3",
+              "leftValue": "={{ $json.Model }}",
+              "rightValue": "notfound",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "19027163-e3e5-447a-8714-d33303dfdceb",
+              "leftValue": "={{ $json.Manufacturer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "41d90862-ec07-4b9a-84d8-93762b7bb49d",
+              "leftValue": "={{ $json.Manufacturer }}",
+              "rightValue": "notfound",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "d9d75844-b998-4092-b965-e63c307f6c2b",
+              "leftValue": "={{ $json.Confidence_Score }}",
+              "rightValue": 0.8,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -304,
+        688
+      ],
+      "id": "5b382607-1f69-4f1e-98b2-eb1698afde21",
+      "name": "Filter1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "hXAYExjyQvoVvImc",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/hXAYExjyQvoVvImc",
+          "cachedResultName": "insert"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "d": "={{ $input.item.json }}"
+          },
+          "matchingColumns": [
+            "d"
+          ],
+          "schema": [
+            {
+              "id": "d",
+              "displayName": "d",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1728,
+        -336
+      ],
+      "id": "bc6d670b-19d7-4a89-a1cc-647326e52889",
+      "name": "Call 'insert'1",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "insert",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -896,
+        688
+      ],
+      "id": "aba05293-7968-4869-9f16-3e24b72ae90d",
+      "name": "Webhook",
+      "webhookId": "9bb8098a-0510-4ca1-b76f-e30dfae4068c"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        688
+      ],
+      "id": "b4b56628-6aad-4d35-8037-5ddb45328dd3",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=C:/n8n-local/knime_variable_config.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        608,
+        784
+      ],
+      "id": "7ccb02c1-7f3a-492d-b2dc-bc851b75ad78",
+      "name": "Read config"
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        784
+      ],
+      "id": "fd3753df-e3b0-40f0-b16e-faf409811c22",
+      "name": "Extract from File"
+    }
+  ],
+  "connections": {
+    "Renaming Cols": {
+      "main": [
+        [
+          {
+            "node": "INSERT-NEW-MODELS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        []
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQLite": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Read config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renaming Cols1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "Renaming Cols1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read config": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "SQLite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "98df4c88-0133-4dcd-bd05-5912b5050768",
+  "activeVersionId": "98df4c88-0133-4dcd-bd05-5912b5050768",
+  "versionCounter": 122,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-06-10T06:19:19.513Z",
+      "createdAt": "2026-06-10T06:19:19.513Z",
+      "role": "workflow:owner",
+      "workflowId": "hXAYExjyQvoVvImc",
+      "projectId": "ySMohz6WFKH5tAbg",
+      "project": {
+        "updatedAt": "2026-05-19T07:10:33.827Z",
+        "createdAt": "2026-05-19T07:09:02.777Z",
+        "id": "ySMohz6WFKH5tAbg",
+        "name": "Siranj ks <siranj.sasi@rohde-schwarz.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "cc3354fe-08cb-411e-8459-4a7fa20e3c8b"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 98df4c88",
+    "description": ""
+  }
+}

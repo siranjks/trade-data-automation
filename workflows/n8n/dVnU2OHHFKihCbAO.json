@@ -1,0 +1,715 @@
+{
+  "updatedAt": "2026-06-25T06:52:33.142Z",
+  "createdAt": "2026-06-04T08:23:00.815Z",
+  "id": "dVnU2OHHFKihCbAO",
+  "name": "Phase2_Classification",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        272
+      ],
+      "id": "ccf116e4-a92f-489b-b7de-925d090fa5ec",
+      "name": "Extract from File5"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Match_Status }}",
+                    "rightValue": "Exact",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "de5280ba-7538-49ed-b19e-01ef9932616b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Exact"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "bd407f88-bd66-49e7-b13c-43c91b02dfb9",
+                    "leftValue": "={{ $json.Match_Status }}",
+                    "rightValue": "Partial",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "partial"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ed397816-bc55-4ec5-99c4-296a1e656138",
+                    "leftValue": "={{ $json.Match_Status }}",
+                    "rightValue": "NotFound",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "NotFound"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2192,
+        272
+      ],
+      "id": "6edafa66-1067-4c94-87ed-a679da1b7aae",
+      "name": "Switch",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        368,
+        272
+      ],
+      "id": "e3e231f9-da5a-41de-8409-988ff282a0fa",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Adds a global unique row_id to all 30,000 items\nreturn $input.all().map((item, index) => {\n    item.json.row_id = \"row_\" + index + \"_\" + Date.now();\n    return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        272
+      ],
+      "id": "d89884ce-7f98-4107-80dd-f435836ea6e8",
+      "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Keeps ONLY the columns the AI needs to save API token costs\nreturn $input.all().map(item => {\n    return {\n        json: {\n            // CRITICAL: We must keep the row_id so we can merge it later!\n            row_id: item.json.row_id,\n            Raw_Model: item.json.Raw_Model || \"NotFound\",\n            Product: item.json.Product || item.json.product || \"\",\n            Product_Description: item.json[\"Product Description\"] || item.json.Description || \"\",\n            Exporter_Name: item.json[\"Exporter Name\"] || item.json.exporter_name || \"\"\n        }\n    };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        720
+      ],
+      "id": "16d66154-76d9-44da-a82e-ee8e00fb9ba1",
+      "name": "Strip Data for AI"
+    },
+    {
+      "parameters": {
+        "batchSize": 100,
+        "options": {
+          "reset": false,
+          "combine": true
+        }
+      },
+      "type": "n8n-nodes-splitinbatches-advanced.splitInBatchesAdvanced",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        272
+      ],
+      "id": "5e559abc-18b3-4dff-a200-b9df09a4ebe2",
+      "name": "SplitInBatches-Advanced"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "OH3HqIRkz0m1PPnF",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/OH3HqIRkz0m1PPnF",
+          "cachedResultName": "AI Process"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1888,
+        720
+      ],
+      "id": "2a8ec9f5-af07-4851-ae53-39512c2c692f",
+      "name": "Call 'AI Process'"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Grab all the combined items coming out of the loop's 'done' branch\nconst allItems = $input.all();\n\n// 2. Filter out ONLY the empty {} objects\nconst cleanData = allItems.filter(item => {\n    const data = item.json;\n    \n    // If it is an array (even an empty one []), keep it!\n    if (Array.isArray(data)) return true;\n    \n    // If it is a standard object and has zero keys {}, kick it out!\n    if (Object.keys(data).length === 0) return false;\n    \n    // Otherwise, keep the row!\n    return true;\n});\n\n// 3. Pass the clean rows to the File converter\nreturn cleanData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        -64
+      ],
+      "id": "fbafeb63-0d85-407a-af89-21ee8253f9f0",
+      "name": "Empty Row filter"
+    },
+    {
+      "parameters": {
+        "database": "={{ $json.data.modeldb_location }}",
+        "operation": "executeQuery",
+        "query": "SELECT Model_Number, Primary_Manufacturer, Primary_Product_Type FROM Models;"
+      },
+      "type": "n8n-nodes-sqlite.sqlite",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        288
+      ],
+      "id": "d09ba282-92f5-49fa-a3e5-ddbee124bee8",
+      "name": "Retrieve-DB-Models",
+      "executeOnce": false,
+      "notesInFlow": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Grab all the NotFound items\nconst allItems = $input.all();\nconst batchSize = 5;\nconst finalBatches = [];\n\n// 2. Loop through them and chop them into blocks of 10\nfor (let i = 0; i < allItems.length; i += batchSize) {\n    // Grab 10 items and strip them down to just their JSON data\n    const chunk = allItems.slice(i, i + batchSize).map(item => item.json);\n    \n    // 3. Package them into a single n8n item called \"batch_records\"\n    finalBatches.push({\n        json: {\n            batch_records: chunk\n        }\n    });\n}\n\n// 4. Output the perfect packages\nreturn finalBatches;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        720
+      ],
+      "id": "100853a4-91d2-40fb-98e1-00815d4e3814",
+      "name": "Making batches of 10"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "row_id",
+              "field2": "row_id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3056,
+        592
+      ],
+      "id": "a98aad62-cf0a-47ce-ae89-e2994dd50048",
+      "name": "Merge- AI OUT"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3312,
+        272
+      ],
+      "id": "e7f77ae9-4975-4779-a77e-690fef95ddd8",
+      "name": "APPEND - ALL ROWS"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/insert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2480,
+        1040
+      ],
+      "id": "8ff4b024-21eb-4b2d-9fe4-efce0ca62c22",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2128,
+        1040
+      ],
+      "id": "0614e3fb-d99f-45f0-b3ba-314d8945d76e",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "data",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        272
+      ],
+      "id": "810a9938-ba89-4b6f-b1d5-4cd334e264b4",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2848,
+        720
+      ],
+      "id": "5a21e4ed-79cf-4def-b0a7-91a203157d36",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- HELPER: Cleans strings perfectly to UPPERCASE alphanumeric only ---\nfunction clean(str) {\n    if (!str) return \"\";\n    return str.toString().toUpperCase().replace(/[^A-Z0-9]/g, '');\n}\n\n// --- HELPER: Checks if keywords from string A exist in string B (Fuzzy Token Match) ---\nfunction tokenMatch(strA, strB) {\n    if (!strA || !strB) return false;\n    const wordsA = strA.toString().toUpperCase().split(/[^A-Z0-9]+/);\n    const cleanB = strB.toString().toUpperCase();\n    \n    // Ignore generic corporate entity indicators and small stop words\n    const ignoreList = [\"AND\", \"THE\", \"FOR\", \"WITH\", \"V\", \"A\", \"LLC\", \"INC\", \"CORP\", \"LTD\", \"KFT\", \"USA\", \"CO\", \"OF\", \"BY\", \"TO\"];\n    \n    // GENERIC WORDS LIST: If a word is on this list, it cannot pass validation on its own.\n    // It requires another unique technical word nearby (e.g., \"MULTIMETER\" or \"LCR\") to match.\n    const genericWords = [\"METER\", \"PART\", \"PARTS\", \"DEVICE\", \"SYSTEM\", \"ELECTRONIC\", \"DIGITAL\"];\n    \n    let matchedUniqueWord = false;\n    let matchedGenericWord = false;\n\n    for (const word of wordsA) {\n        if (word.length > 1 && !ignoreList.includes(word)) {\n            if (cleanB.includes(word)) {\n                if (genericWords.includes(word)) {\n                    matchedGenericWord = true;\n                } else {\n                    matchedUniqueWord = true;\n                }\n            }\n        }\n    }\n    \n    // Professional Decision Rule: A match is valid if it contains a unique technical word,\n    // OR if it's an absolute full phrase match, preventing generic \"METER\" cross-contamination.\n    return matchedUniqueWord || (matchedGenericWord && cleanB.includes(strA.toString().toUpperCase()));\n}\n\nconst found_list = [];\nconst not_found_list = [];\n\n// 1. Safely extract DB Rows\nconst dbItems = $(\"Retrieve-DB-Models\").all();\nconst dbRows = [];\nfor (const item of dbItems) {\n    if (Array.isArray(item.json)) {\n        dbRows.push(...item.json);\n    } else {\n        dbRows.push(item.json);\n    }\n}\n\n// FIX 4: PRE-CLEAN DATABASE ONCE FOR PERFORMANCE\nconst preCleanedDb = dbRows.map(row => ({\n    ...row,\n    Cleaned_Model: row.Model_Number ? clean(row.Model_Number) : \"\"\n}));\n\n// 2. Build the dictionary for Layer 1\nconst exactMatchMap = new Map();\nfor (const row of dbRows) {\n    if (row.Model_Number) {\n        exactMatchMap.set(clean(row.Model_Number), row);\n    }\n}\n\n// 3. Safely extract your Excel rows \nconst inputItems = $(\"SplitInBatches-Advanced\").all();\nconst recordsToProcess = [];\nfor (const item of inputItems) {\n    if (item.json && Array.isArray(item.json.data)) {\n        recordsToProcess.push(...item.json.data);\n    } else {\n        recordsToProcess.push(item.json);\n    }\n}\n\n// 4. Process all rows\nfor (const originalRow of recordsToProcess) {\n    \n    let rawModel = \"\";\n    let desc = originalRow[\"Product Description\"] || originalRow[\"product_description\"] || originalRow.Description || \"\";\n    const exporter = originalRow[\"Exporter Name\"] || originalRow[\"exporter_name\"] || \"\";\n    const rawProductCol = originalRow[\"Product\"] || originalRow[\"product\"] || \"NotFound\";\n    const productCategory = originalRow[\"Product Category\"] || originalRow[\"product_category\"] || \"\";\n    \n    if (desc !== \"\") {\n        // DYNAMIC PRE-CLEANING: Eradicate floating quantity strings from description context\n        desc = desc.replace(/\\b\\d+\\s*(pcs|pc|pcs\\b|pce|pieces|pcsx)\\b/gi, '');\n\n        // FIX 1: REGEX GREEDINESS (ALLOW STARTING WITH NUMBERS)\n        const modelMatch = desc.match(/\\b([A-Za-z0-9]+[A-Za-z0-9-]*[0-9]+[A-Za-z0-9-]*)\\b/);\n        if (modelMatch) {\n            let extracted = modelMatch[1].toUpperCase();\n            rawModel = extracted.replace(/\\d+\\s*(PCS|PC|PCE|PIECES)$/gi, '');\n        }\n    }\n\n    const targetModel = clean(rawModel);\n    \n    let bestMatch = null;\n    let matchType = \"NotFound\"; \n    let finalUsedSearchString = targetModel; \n\n    // Final target destination variables\n    let finalManufacturer = \"NotFound\";\n    let finalProductType = \"NotFound\";\n    let finalCategory = \"NotFound\"; \n    \n    // Troubleshooting verification trace logs\n    let mfgVerifyLog = \"N/A\";\n    let prodVerifyLog = \"N/A\";\n\n    // ==========================================\n    // THE LAYERED MATCHER WITH VALIDATION\n    // ==========================================\n    if (targetModel !== \"\") {\n        \n        // LAYER 1: The Exact Match\n        if (exactMatchMap.has(targetModel)) {\n            bestMatch = exactMatchMap.get(targetModel);\n            matchType = \"Exact\";\n            \n            // Exact matches completely bypass verification checks\n            finalManufacturer = bestMatch.Primary_Manufacturer || \"NotFound\";\n            finalProductType = bestMatch.Primary_Product_Type || \"NotFound\";\n            \n            mfgVerifyLog = \"Bypassed(Exact)\";\n            prodVerifyLog = \"Bypassed(Exact)\";\n        } \n        \n        // LAYER 2: The Descending Search Match (Requires String Cross-Validation)\n        else {\n            let tempStr = targetModel;\n\n            // FIX 3: ADDED CATCH-ALL COMMENT FOR SHORT STRINGS\n            // Note: Strings shorter than 3 characters will skip this loop entirely to prevent false positives.\n            while (tempStr.length >= 3 && !bestMatch) {\n                finalUsedSearchString = tempStr; \n                \n                // FIX 4 CONT.: USE PRE-CLEANED ARRAY FOR O(1) REGEX PERFORMANCE\n                bestMatch = preCleanedDb.find(dbRow => {\n                    const cleanDbModel = dbRow.Cleaned_Model;\n                    if (cleanDbModel.length < 3) return false;\n                    \n                    return cleanDbModel === tempStr || cleanDbModel.startsWith(tempStr) || tempStr.startsWith(cleanDbModel);\n                });\n\n                if (!bestMatch) {\n                    tempStr = tempStr.slice(0, -1);\n                }\n            }\n\n            if (bestMatch) {\n                matchType = \"Partial\";\n                \n                const dbMfg = bestMatch.Primary_Manufacturer || \"NotFound\";\n                const dbProdType = bestMatch.Primary_Product_Type || \"NotFound\";\n                \n                // A. PARTIAL VALIDATION: Manufacturer Check (Exporter Name + Description Context)\n                const cleanExporterAndDesc = `${exporter} ${desc}`.toUpperCase();\n                if (dbMfg !== \"NotFound\" && (cleanExporterAndDesc.includes(clean(dbMfg)) || tokenMatch(dbMfg, cleanExporterAndDesc))) {\n                    finalManufacturer = dbMfg;\n                    mfgVerifyLog = \"Verified\";\n                } else {\n                    finalManufacturer = \"NotFound\"; \n                    mfgVerifyLog = \"Mismatch->NotFound\";\n                }\n\n                // B. PARTIAL VALIDATION: Product Type Check (Product + Description + Product Category Context)\n                // UPGRADE: Added productCategory to check overall repeated context across all available columns\n                const cleanProductContext = `${rawProductCol} ${desc} ${productCategory}`.toUpperCase();\n                if (dbProdType !== \"NotFound\" && tokenMatch(dbProdType, cleanProductContext)) {\n                    finalProductType = dbProdType;\n                    prodVerifyLog = \"Verified\";\n                } else {\n                    // Fallback to original data instead of erasing the field\n                    finalProductType = rawProductCol; \n                    prodVerifyLog = `Mismatch->Fallback(${rawProductCol})`;\n                }\n            }\n        }\n    }\n    \n    // Explicit cleanup for baseline unmapped items\n    if (matchType === \"NotFound\") {\n        finalManufacturer = \"NotFound\";\n        finalProductType = \"NotFound\";\n        finalCategory = \"NotFound\";\n        mfgVerifyLog = \"NoModelMatch\";\n        prodVerifyLog = \"NoModelMatch\";\n    } else {\n        // ==========================================\n        // --- NEW: APPLY SAM KEYWORD LOGIC ---\n        // ==========================================\n        const checkMfg = finalManufacturer.toUpperCase();\n        const checkProd = finalProductType.toUpperCase();\n\n        // 1. Check for 'Ours' first\n        if (checkMfg.includes(\"ROHDE\") || checkMfg === \"R&S\") {\n            finalCategory = \"Ours\";\n        } \n        // 2. Scan the Product Type for SAM keywords\n        else {\n            let isSam = false;\n            // Add or remove your target keywords right here:\n            const samKeywords = [\"OSCILLOSCOPE\", \"ANALYZER\", \"METER\", \"GENERATOR\", \"POWER SUPPLY\", \"TESTER\", \"NETWORK\"];\n            \n            for (const keyword of samKeywords) {\n                if (checkProd.includes(keyword)) {\n                    isSam = true;\n                    break;\n                }\n            }\n            finalCategory = isSam ? \"SAM\" : \"Non-SAM\";\n        }\n    }\n    // ==========================================\n\n    // Dynamic Database metrics for troubleshooting logs\n    const totalDbMatchesFound = bestMatch ? dbRows.filter(r => clean(r.Model_Number).startsWith(finalUsedSearchString)).length : 0;\n    const dbMatchedModelName = bestMatch ? bestMatch.Model_Number : \"None\";\n    \n    // Highly verbose troubleshooting string for detailed data debugging\n    const comprehensiveDebugLog = `Matches: ${totalDbMatchesFound} | DBModel: ${dbMatchedModelName} | SearchStr: ${finalUsedSearchString || \"None\"} | Status: ${matchType} | MfgCheck: ${mfgVerifyLog} | ProdCheck: ${prodVerifyLog}`;\n\n    // --- STEP C: Merge and Route the Data ---\n    if (matchType !== \"NotFound\") {\n        found_list.push({\n            ...originalRow,\n            Raw_Model: rawModel,\n            Final_Manufacturer: finalManufacturer,\n            Final_Product_Type: finalProductType,\n            // UPGRADE: Only use DB Model for Exact matches. Keep Raw_Model for Partial matches.\n            Final_Model: matchType === \"Exact\" ? bestMatch.Model_Number : rawModel,\n            Match_Status: matchType, \n            Category: finalCategory,\n            Debug_Log: comprehensiveDebugLog\n        });\n    } else {\n        not_found_list.push({\n            ...originalRow,\n            Raw_Model: rawModel || \"NotFound\",\n            Final_Manufacturer: \"NotFound\",\n            Final_Product_Type: \"NotFound\",\n            Final_Model: rawModel || \"NotFound\",\n            Match_Status: \"NotFound\",\n            Category: finalCategory,\n            Debug_Log: comprehensiveDebugLog\n        });\n    }\n}\n\n// 5. Output perfectly native n8n items\nconst all_items = [...found_list, ...not_found_list];\nreturn all_items.map(row => ({ json: row }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        288
+      ],
+      "id": "c38e941f-8bf7-4d8a-aa8b-aadb0b880ef1",
+      "name": "DB-Matching"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Grab all incoming data\nconst items = $input.all();\n\n// UPGRADED FAILSAFE: Detects if n8n sent 0 items, OR if it sent 1 \"Ghost Row\" {}\nif (items.length === 0 || (items.length === 1 && Object.keys(items[0].json).length === 0)) {\n    return []; // Returns a true blank array to kill the ghost row!\n}\n\nreturn items.map(item => {\n    let row = item.json;\n\n    // 1. Rename / Map your Final_ columns to the clean AI columns\n    row.Manufacturer = row.Final_Manufacturer || \"NotFound\";\n    row.Product_Type = row.Final_Product_Type || \"NotFound\";\n    row.Model = row.Final_Model || row.Raw_Model || \"NotFound\";\n\n    // 2. Directly map the Category from the Master DB node to the Competitor_Check\n    row.Competitor_Check = row.Category || \"NotFound\";\n\n    // 3. Apply the Partial score and reason\n    row.Confidence_Score = 0.8;\n    row.Match_Reason = \"Partial DB Match (Bypassed AI)\";\n\n    // 4. Cleanup the messy columns so the final output is pristine\n    delete row.Final_Manufacturer;\n    delete row.Final_Product_Type;\n    delete row.Final_Model;\n    delete row.Category; \n\n    return { json: row };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        288
+      ],
+      "id": "6f23d035-b650-4640-8e11-0f917a1e2181",
+      "name": "mapping_partial"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Grab all incoming data\nconst items = $input.all();\n\n// UPGRADED FAILSAFE: Detects if n8n sent 0 items, OR if it sent 1 \"Ghost Row\" {}\nif (items.length === 0 || (items.length === 1 && Object.keys(items[0].json).length === 0)) {\n    return []; // Returns a true blank array to kill the ghost row!\n}\n\nreturn items.map(item => {\n    let row = item.json;\n\n    // 1. Rename / Map your Final_ columns to the clean AI columns\n    row.Manufacturer = row.Final_Manufacturer || \"NotFound\";\n    row.Product_Type = row.Final_Product_Type || \"NotFound\";\n    row.Model = row.Final_Model || row.Raw_Model || \"NotFound\";\n\n    // 2. Directly map the Category from the Master DB node to the Competitor_Check\n    row.Competitor_Check = row.Category || \"NotFound\";\n\n    // 3. Apply the Exact score and reason\n    row.Confidence_Score = 1.0;\n    row.Match_Reason = \"Exact DB Match (Bypassed AI)\";\n\n    // 4. Cleanup the messy columns so the final output is pristine\n    delete row.Final_Manufacturer;\n    delete row.Final_Product_Type;\n    delete row.Final_Model;\n    delete row.Category; \n\n    return { json: row };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        80
+      ],
+      "id": "fa1c1443-4108-4419-bc1a-f1bf02c65a2a",
+      "name": "mapping_exact"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=C:/n8n-local/knime_variable_config.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        288
+      ],
+      "id": "a1b9449f-621f-4edd-9270-56d87720c723",
+      "name": "Read config"
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1440,
+        288
+      ],
+      "id": "e0a4d61d-0a22-468c-8cc1-d830b42ac668",
+      "name": "Extract from File"
+    }
+  ],
+  "connections": {
+    "Extract from File5": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "mapping_exact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "mapping_partial",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge- AI OUT",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Strip Data for AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches-Advanced",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Strip Data for AI": {
+      "main": [
+        [
+          {
+            "node": "Making batches of 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches-Advanced": {
+      "main": [
+        [
+          {
+            "node": "Empty Row filter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'AI Process'": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty Row filter": {
+      "main": [
+        []
+      ]
+    },
+    "Retrieve-DB-Models": {
+      "main": [
+        [
+          {
+            "node": "DB-Matching",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Making batches of 10": {
+      "main": [
+        [
+          {
+            "node": "Call 'AI Process'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge- AI OUT": {
+      "main": [
+        [
+          {
+            "node": "APPEND - ALL ROWS",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "APPEND - ALL ROWS": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches-Advanced",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Extract from File5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge- AI OUT",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "DB-Matching": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mapping_partial": {
+      "main": [
+        [
+          {
+            "node": "APPEND - ALL ROWS",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "mapping_exact": {
+      "main": [
+        [
+          {
+            "node": "APPEND - ALL ROWS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read config": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Retrieve-DB-Models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "dcc320da-19b9-4ba4-a032-034d658c5b81",
+  "activeVersionId": "dcc320da-19b9-4ba4-a032-034d658c5b81",
+  "versionCounter": 732,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-06-04T08:23:00.815Z",
+      "createdAt": "2026-06-04T08:23:00.815Z",
+      "role": "workflow:owner",
+      "workflowId": "dVnU2OHHFKihCbAO",
+      "projectId": "ySMohz6WFKH5tAbg",
+      "project": {
+        "updatedAt": "2026-05-19T07:10:33.827Z",
+        "createdAt": "2026-05-19T07:09:02.777Z",
+        "id": "ySMohz6WFKH5tAbg",
+        "name": "Siranj ks <siranj.sasi@rohde-schwarz.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "cc3354fe-08cb-411e-8459-4a7fa20e3c8b"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version dcc320da",
+    "description": ""
+  }
+}
