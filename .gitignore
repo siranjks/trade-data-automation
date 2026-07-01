@@ -1,0 +1,13 @@
+# Ignore live execution data and archives
+local_execution/
+/scripts/knime_variable_config.json
+/scripts/run_knime.bat
+
+# Ignore real data files
+*.xlsx
+*.csv
+*.xls
+
+# Ignore KNIME metadata
+.metadata/
+.knimeLock
