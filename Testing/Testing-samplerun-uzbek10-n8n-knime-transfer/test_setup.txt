@@ -1,0 +1,20 @@
+This test was for the overall data flow between knime-n8n.
+
+
+- a post req is sent via a test wf inside n8n itself to simulate actual knime post req - just for testing.
+- json containing 10 rows of Uzbekistan data inside the inbound folder.
+
+
+- Upon triggering, n8n workflow starts to execute, which immediately grabs the file from the Inbound folder.
+- After the whole n8n process(including new model insertion) the out is saved into processed folder.
+- executes cmd command in the host. 
+- cmd is:cmd.exe /c ""%USERPROFILE%\AppData\Local\Programs\KNIME\knime.exe" -nosplash -consoleLog -application com.nodepit.batch.application.NodePitBatchExecutor --reset "%USERPROFILE%\knime-workspace\test_trigger""
+
+- This executes the knime wf named 'test_trigger' in background and closes itself after finishing.
+- Inside the wf, the 'knime_variable_config.json' is read and converts into actual variable.(this file is created by the Initial_Process wf so that the variables can be retrieved.)
+- The processed data is pulled and transformed into desired output and inserts into the 'Trade_Data.db' if it doesn't exist. And saves into Output files folder as allcountriesmerged.xlsx. (might delete this later, still in consideration)
+- The raw files are transferred in to archive folder.
+- A js display msg is shown to indicate wf completion.
+
+This proves that the knime-n8n-knime setup is working efficiently provided needs future improvements.
+

@@ -1,0 +1,12 @@
+- a json file containing 12 rows in total( 10 potential notfound rows followed by 2 repeated rows)
+- split in batches configured for 10 rows per batch to simulate RAG.(loop1-10rows,loop2-2rows)
+- batch for ai is configured 10 as well.
+- SQLite in insert mode & created UNIQUE INDEX to avoid duplicates. ->CREATE UNIQUE INDEX idx_3_pillar_identity ON Models(Model_Number, Primary_Manufacturer, Primary_Product_Type);
+- Execution finished without errors.
+Result: query executed successfully. Took 2ms
+At line 1:
+CREATE UNIQUE INDEX idx_3_pillar_identity ON Models(Model_Number, Primary_Manufacturer, Primary_Product_Type);
+- after testing, 606 rows in database change to 616 indicating 10 newly added rows. no repeated entry.
+- also found that on second loop match criteria correctly classifies remaining 2 rows as 'Exact' which satisfies our intention.
+- This means that for each loop containing 100 rows of data, it matches with db, classifies, notfound is further classified by ai, newly found models saved back to db so that next batch of rows (next 100 rows) will be matched efficiently reducing time, then repeats until all values are processed. 
+
