@@ -1,0 +1,20 @@
+This test was for the file trigger testing between knime-n8n.
+
+
+- Starting in knime, partially cleaned data is saved to a folder named 'Inbound' using loop inside knime.
+- After saving, a POST node is used to trigger a webhook inside n8n. 
+
+
+- Upon triggering, n8n workflow starts to execute, which immediately grabs all the files from Inbound folder.
+- Inside n8n wf the files are processed one by one (this files is actually replicates .json files with around 1500 rows of data) using loop over items.
+- Inside this loop, the data is matched and classified using AI and the output json (1500 rows also) is saved into a folder named 'Processed' with added suffix '_finished'.
+- The loop finishes only after the last json from Inbound is processed.
+- After the loop is done, an 'Execute Command' node is used to execute cmd command in the host. 
+- cmd is:cmd.exe /c ""%USERPROFILE%\AppData\Local\Programs\KNIME\knime.exe" -nosplash -consoleLog -application com.nodepit.batch.application.NodePitBatchExecutor --reset "%USERPROFILE%\knime-workspace\test_trigger""
+
+
+- This executes the knime wf named 'test_trigger' in background and closes itself after finishing. For this nodepit batch executor extension is used.
+- A simple renaming of file is done by pulling the json from the 'Processed' folder and changing it to knime0.json, just to showcase the knime wf is executed. And this is stored in the 'knime-test-IN' folder. 
+
+This proves that the knime-n8n-knime setup is working efficiently provided needs future improvements.
+

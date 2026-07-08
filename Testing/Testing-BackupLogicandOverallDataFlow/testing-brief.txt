@@ -1,0 +1,14 @@
+Testing done on 25 June Thursday
+
+for backups creation testing and overall data flow
+
+model_db from 606 to [new]
+trade_data.db from around 10 to [new]
+
+so in this test, a sample trigger is done in initial process knime wf to simulate the knime to n8n data transfer because of an existing error in that wf. 
+
+- a post node to trigger the workflow,
+- test data in inbound folder,
+- n8n processes data saved into processed.
+- calls the knime wf Final_Process, it works but turns an error. 
+- the folder is backedup completely fine , no major issues.
