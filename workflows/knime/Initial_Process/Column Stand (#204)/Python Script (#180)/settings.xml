@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://www.knime.org/2008/09/XMLConfig" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.knime.org/2008/09/XMLConfig http://www.knime.org/XMLConfig_2008_09.xsd" key="settings.xml">
+    <entry key="node_file" type="xstring" value="settings.xml"/>
+    <config key="flow_stack"/>
+    <config key="internal_node_subsettings">
+        <entry key="memory_policy" type="xstring" value="CacheSmallInMemory"/>
+    </config>
+    <config key="model">
+        <entry key="python3_command" type="xstring" value=""/>
+        <entry key="script" type="xstring" value="import knime.scripting.io as knio%%00010import pandas as pd%%00010import requests%%00010import json%%00010%%00010# ==========================================%%00010# 0. LOAD SECRETS FROM CSV READER (BOTTOM PORT)%%00010# ==========================================%%00010df_env = knio.input_tables[1].to_pandas()%%00010env_dict = dict(zip(df_env.iloc[:, 0].str.strip(), df_env.iloc[:, 1].str.strip()))%%00010%%00010API_KEY = env_dict.get(&quot;OPENROUTER_API_KEY&quot;)%%00010url = env_dict.get(&quot;OPENROUTER_URL&quot;)%%00010%%00010# ==========================================%%00010# 1. READ TRANSPOSED VERTICAL HEADERS%%00010# ==========================================%%00010df_input = knio.input_tables[0].to_pandas()%%00010messy_headers = df_input['Column Header'].dropna().unique().tolist()%%00010%%00010# ==========================================%%00010# 2. SETUP OPENROUTER AI%%00010# ==========================================%%00010# Your EXACT 13 Golden Standard Targets from the screenshot%%00010target_columns = [%%00010    &quot;Date&quot;, %%00010    &quot;Importer Name&quot;, %%00010    &quot;Importer Country&quot;, %%00010    &quot;Exporter Name&quot;, %%00010    &quot;Exporter Country&quot;, %%00010    &quot;HS Code&quot;, %%00010    &quot;Product Description&quot;, %%00010    &quot;Product Category&quot;, %%00010    &quot;Product&quot;, %%00010    &quot;Quantity&quot;, %%00010    &quot;Quantity Unit&quot;, %%00010    &quot;Total Price (USD)&quot;, %%00010    &quot;Unit Price (USD/QTY)&quot;%%00010]%%00010%%00010# ==========================================%%00010# 3. THE STRICT AI PROMPT%%00010# ==========================================%%00010system_prompt = f&quot;&quot;&quot;%%00010You are an expert enterprise data engineer. I will provide a list of messy column headers from a global trade dataset. %%00010Your job is to map them to EXACTLY these 13 Golden Standard targets:%%00010{target_columns}%%00010%%00010CRITICAL REASONING RULES:%%000101. THE (EN) PRIORITY: If multiple messy headers mean the same thing (e.g., 'Product' and 'Product(EN)'), you MUST select the exact header containing '(EN)' as the absolute winner.%%000102. PRODUCT DISTINCTIONS: %%00010   - 'Product' = Base product name.%%00010   - 'Product Description' = Detailed description or item details.%%00010   - 'Product Category' = The type, group, or classification of the product.%%00010   Do not merge them. If multiple exist, map them to their respective targets.%%000103. CONTEXTUAL MEANING: Analyze the business context. 'Destination Country' means 'Importer Country'. 'Origin' means 'Exporter Country'.%%000104. THE ASIAN TAG RULE: NEVER select headers containing (VN), (CN), (ID), (TH), or (KR). Ignore them completely.%%000105. THE DATE RULE: NEVER select dates containing 'registration', 'departure', 'arrival', 'release', or 'estimated'.%%000106. STRICT MATCHING: Only choose headers that actually exist in the user's provided list. If no header logically matches a target, map it to null.%%00010%%00010OUTPUT FORMAT:%%00010Return ONLY a valid JSON object where the KEY is the Golden Standard Target (from my list), and the VALUE is the exact Messy Header you selected.%%00010&quot;&quot;&quot;%%00010%%00010headers = {%%00010    &quot;Authorization&quot;: f&quot;Bearer {API_KEY}&quot;,%%00010    &quot;HTTP-Referer&quot;: &quot;https://my-knime-pipeline.com&quot;, %%00010    &quot;X-Title&quot;: &quot;KNIME Dictionary Builder&quot;, %%00010    &quot;Content-Type&quot;: &quot;application/json&quot;%%00010}%%00010%%00010payload = {%%00010    &quot;model&quot;: &quot;anthropic/claude-3-haiku&quot;, %%00010    &quot;messages&quot;: [%%00010        {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: system_prompt},%%00010        {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: json.dumps(messy_headers)}%%00010    ],%%00010    &quot;response_format&quot;: { &quot;type&quot;: &quot;json_object&quot; }, %%00010    &quot;temperature&quot;: 0.0 %%00010}%%00010%%00010# ==========================================%%00010# 4. EXECUTE AI MAPPING%%00010# ==========================================%%00010try:%%00010    response = requests.post(url, headers=headers, json=payload, timeout=45)%%00010    response.raise_for_status() %%00010    result = response.json()%%00010    %%00010    target_to_messy = json.loads(result['choices'][0]['message']['content'])%%00010    %%00010except Exception as e:%%00010    print(f&quot;API Failed: {e}&quot;)%%00010    target_to_messy = {}%%00010%%00010# ==========================================%%00010# 5. FORMAT FOR KNIME'S DICTIONARY RENAMER%%00010# ==========================================%%00010mapping_data = []%%00010%%00010for golden_target, messy_origin in target_to_messy.items():%%00010    if messy_origin and str(messy_origin).strip().lower() != &quot;null&quot;: %%00010        mapping_data.append({%%00010            &quot;Old_Name&quot;: messy_origin,%%00010            &quot;New_Name&quot;: golden_target%%00010        })%%00010%%00010dict_df = pd.DataFrame(mapping_data)%%00010%%00010# Safety Net: Ensure output table structure exists even if AI fails%%00010if dict_df.empty:%%00010    dict_df = pd.DataFrame(columns=[&quot;Old_Name&quot;, &quot;New_Name&quot;])%%00010%%00010# ==========================================%%00010# 6. SEND DICTIONARY BACK TO KNIME%%00010# ==========================================%%00010knio.output_tables[0] = knio.Table.from_pandas(dict_df)"/>
+    </config>
+    <config key="variables">
+        <entry key="version" type="xstring" value="V_2019_09_13"/>
+        <config key="tree">
+            <config key="python3_command">
+                <entry key="used_variable" type="xstring" value=""/>
+                <entry key="used_variable_flawed" type="xboolean" value="false"/>
+                <entry key="exposed_variable" type="xstring" isnull="true" value=""/>
+            </config>
+        </config>
+    </config>
+    <config key="nodeAnnotation">
+        <entry key="text" type="xstring" value="env changes"/>
+        <entry key="contentType" type="xstring" value="text/plain"/>
+        <entry key="bgcolor" type="xint" value="16777215"/>
+        <entry key="x-coordinate" type="xint" value="0"/>
+        <entry key="y-coordinate" type="xint" value="0"/>
+        <entry key="width" type="xint" value="0"/>
+        <entry key="height" type="xint" value="0"/>
+        <entry key="alignment" type="xstring" value="CENTER"/>
+        <entry key="borderSize" type="xint" value="0"/>
+        <entry key="borderColor" type="xint" value="0"/>
+        <entry key="defFontSize" type="xint" value="-1"/>
+        <entry key="annotation-version" type="xint" value="20230412"/>
+        <config key="styles"/>
+    </config>
+    <entry key="customDescription" type="xstring" isnull="true" value=""/>
+    <entry key="state" type="xstring" value="CONFIGURED"/>
+    <entry key="factory" type="xstring" value="org.knime.python3.scripting.nodes2.script.PythonScriptNodeFactory"/>
+    <entry key="node-name" type="xstring" value="Python Script"/>
+    <entry key="node-bundle-name" type="xstring" value="KNIME Python 3 - Scripting Nodes"/>
+    <entry key="node-bundle-symbolic-name" type="xstring" value="org.knime.python3.scripting.nodes"/>
+    <entry key="node-bundle-vendor" type="xstring" value="KNIME AG, Zurich, Switzerland"/>
+    <entry key="node-bundle-version" type="xstring" value="5.11.0.v202602211520"/>
+    <entry key="node-feature-name" type="xstring" value="KNIME Python Integration"/>
+    <entry key="node-feature-symbolic-name" type="xstring" value="org.knime.features.python3.scripting.feature.group"/>
+    <entry key="node-feature-vendor" type="xstring" value="KNIME AG, Zurich, Switzerland"/>
+    <entry key="node-feature-version" type="xstring" value="5.11.0.v202602211520"/>
+    <config key="factory_settings"/>
+    <config key="node_creation_config">
+        <config key="Python environment"/>
+        <config key="Input object (pickled)"/>
+        <config key="Input table">
+            <config key="port_0">
+                <entry key="object_class" type="xstring" value="org.knime.core.node.BufferedDataTable"/>
+            </config>
+            <config key="port_1">
+                <entry key="object_class" type="xstring" value="org.knime.core.node.BufferedDataTable"/>
+            </config>
+        </config>
+        <config key="Output table">
+            <config key="port_0">
+                <entry key="object_class" type="xstring" value="org.knime.core.node.BufferedDataTable"/>
+            </config>
+        </config>
+        <config key="Output image"/>
+        <config key="Output object (pickled)"/>
+    </config>
+    <entry key="name" type="xstring" value="Python Script"/>
+    <entry key="hasContent" type="xboolean" value="false"/>
+    <entry key="isInactive" type="xboolean" value="false"/>
+    <config key="ports">
+        <config key="port_1">
+            <entry key="index" type="xint" value="1"/>
+            <entry key="port_dir_location" type="xstring" isnull="true" value=""/>
+        </config>
+    </config>
+    <config key="filestores">
+        <entry key="file_store_location" type="xstring" isnull="true" value=""/>
+        <entry key="file_store_id" type="xstring" isnull="true" value=""/>
+    </config>
+</config>

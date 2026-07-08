@@ -1,13 +1,27 @@
-# Ignore live execution data and archives
-local_execution/
-/scripts/knime_variable_config.json
-/scripts/run_knime.bat
+# ==========================================
+# 1. SECRETS (CRITICAL - DO NOT REMOVE)
+# ==========================================
+.env
 
-# Ignore real data files
+# ==========================================
+# 2. LOCAL EXECUTION & CACHE JUNK
+# ==========================================
+local_execution/
+__pycache__/
+*.log
+
+# ==========================================
+# 3. RAW DATA (Keep GitHub Fast & Clean)
+# ==========================================
 *.xlsx
 *.csv
 *.xls
 
-# Ignore KNIME metadata
+# ==========================================
+# 4. KNIME METADATA (Prevents Sync Errors)
+# ==========================================
 .metadata/
 .knimeLock
+# Ignore KNIME node data caches (CRITICAL FOR SECRETS)
+port_*/
+internal/
