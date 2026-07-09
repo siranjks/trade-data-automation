@@ -1,0 +1,52 @@
+{
+  "type": "array",
+  "description": "The list of processed trade records containing extracted models and classifications.",
+  "items": {
+    "type": "object",
+    "properties": {
+      "row_id": {
+        "type": "string",
+        "description": "The exact row_id provided in the input data."
+      },
+      "Manufacturer": {
+        "type": "string",
+        "description": "The clean, primary brand name of the equipment creator."
+      },
+      "Product_Type": {
+        "type": "string",
+        "description": "The classified core equipment instrument category."
+      },
+      "Model": {
+        "type": "string",
+        "description": "The isolated hardware/software model number string, or 'NotFound'."
+      },
+      "Competitor_Check": {
+        "type": "string",
+        "enum": [
+          "Ours",
+          "SAM",
+          "Non-SAM"
+        ]
+      },
+      "Confidence_Score": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "Match_Reason": {
+        "type": "string",
+        "description": "A short precise explanation of how the record was classified."
+      }
+    },
+    "required": [
+      "row_id",
+      "Manufacturer",
+      "Product_Type",
+      "Model",
+      "Competitor_Check",
+      "Confidence_Score",
+      "Match_Reason"
+    ],
+    "additionalProperties": false
+  }
+}

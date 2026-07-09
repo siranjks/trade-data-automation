@@ -1,0 +1,12 @@
+// 1. Grab the single output box from the AI Agent
+const aiResponse = $input.first().json.output;
+
+// 2. Map over the array of 10 answers and wrap each one in n8n's required 'json' format
+const unbundledItems = aiResponse.map(item => {
+    return {
+        json: item
+    };
+});
+
+// 3. Return the 10 separate rows to the workflow
+return unbundledItems;

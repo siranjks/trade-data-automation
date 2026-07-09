@@ -1,0 +1,257 @@
+// --- HELPER: Cleans strings perfectly to UPPERCASE alphanumeric only ---
+function clean(str) {
+    if (!str) return "";
+    return str.toString().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+// --- HELPER: Checks if keywords from string A exist in string B (Fuzzy Token Match) ---
+function tokenMatch(strA, strB) {
+    if (!strA || !strB) return false;
+    const wordsA = strA.toString().toUpperCase().split(/[^A-Z0-9]+/);
+    const cleanB = strB.toString().toUpperCase();
+    
+    // Ignore generic corporate entity indicators and small stop words
+    const ignoreList = ["AND", "THE", "FOR", "WITH", "V", "A", "LLC", "INC", "CORP", "LTD", "KFT", "USA", "CO", "OF", "BY", "TO"];
+    
+    // GENERIC WORDS LIST: If a word is on this list, it cannot pass validation on its own.
+    // It requires another unique technical word nearby (e.g., "MULTIMETER" or "LCR") to match.
+    const genericWords = ["METER", "PART", "PARTS", "DEVICE", "SYSTEM", "ELECTRONIC", "DIGITAL"];
+    
+    let matchedUniqueWord = false;
+    let matchedGenericWord = false;
+
+    for (const word of wordsA) {
+        if (word.length > 1 && !ignoreList.includes(word)) {
+            if (cleanB.includes(word)) {
+                if (genericWords.includes(word)) {
+                    matchedGenericWord = true;
+                } else {
+                    matchedUniqueWord = true;
+                }
+            }
+        }
+    }
+    
+    // Professional Decision Rule: A match is valid if it contains a unique technical word,
+    // OR if it's an absolute full phrase match, preventing generic "METER" cross-contamination.
+    return matchedUniqueWord || (matchedGenericWord && cleanB.includes(strA.toString().toUpperCase()));
+}
+
+const found_list = [];
+const not_found_list = [];
+
+// 1. Safely extract DB Rows
+const dbItems = $("Retrieve-DB-Models").all();
+const dbRows = [];
+for (const item of dbItems) {
+    if (Array.isArray(item.json)) {
+        dbRows.push(...item.json);
+    } else {
+        dbRows.push(item.json);
+    }
+}
+
+// FIX 4: PRE-CLEAN DATABASE ONCE FOR PERFORMANCE
+const preCleanedDb = dbRows.map(row => ({
+    ...row,
+    Cleaned_Model: row.Model_Number ? clean(row.Model_Number) : ""
+}));
+
+// 2. Build the dictionary for Layer 1
+const exactMatchMap = new Map();
+for (const row of dbRows) {
+    if (row.Model_Number) {
+        exactMatchMap.set(clean(row.Model_Number), row);
+    }
+}
+
+// 3. Safely extract your Excel rows 
+const inputItems = $("SplitInBatches-Advanced").all();
+const recordsToProcess = [];
+for (const item of inputItems) {
+    if (item.json && Array.isArray(item.json.data)) {
+        recordsToProcess.push(...item.json.data);
+    } else {
+        recordsToProcess.push(item.json);
+    }
+}
+
+// 4. Process all rows
+for (const originalRow of recordsToProcess) {
+    
+    let rawModel = "";
+    let desc = originalRow["Product Description"] || originalRow["product_description"] || originalRow.Description || "";
+    const exporter = originalRow["Exporter Name"] || originalRow["exporter_name"] || "";
+    const rawProductCol = originalRow["Product"] || originalRow["product"] || "NotFound";
+    const productCategory = originalRow["Product Category"] || originalRow["product_category"] || "";
+    
+    if (desc !== "") {
+        // DYNAMIC PRE-CLEANING: Eradicate floating quantity strings from description context
+        desc = desc.replace(/\b\d+\s*(pcs|pc|pcs\b|pce|pieces|pcsx)\b/gi, '');
+
+        // FIX 1: REGEX GREEDINESS (ALLOW STARTING WITH NUMBERS)
+        const modelMatch = desc.match(/\b([A-Za-z0-9]+[A-Za-z0-9-]*[0-9]+[A-Za-z0-9-]*)\b/);
+        if (modelMatch) {
+            let extracted = modelMatch[1].toUpperCase();
+            rawModel = extracted.replace(/\d+\s*(PCS|PC|PCE|PIECES)$/gi, '');
+        }
+    }
+
+    const targetModel = clean(rawModel);
+    
+    let bestMatch = null;
+    let matchType = "NotFound"; 
+    let finalUsedSearchString = targetModel; 
+
+    // Final target destination variables
+    let finalManufacturer = "NotFound";
+    let finalProductType = "NotFound";
+    let finalCategory = "NotFound"; 
+    
+    // Troubleshooting verification trace logs
+    let mfgVerifyLog = "N/A";
+    let prodVerifyLog = "N/A";
+
+    // ==========================================
+    // THE LAYERED MATCHER WITH VALIDATION
+    // ==========================================
+    if (targetModel !== "") {
+        
+        // LAYER 1: The Exact Match
+        if (exactMatchMap.has(targetModel)) {
+            bestMatch = exactMatchMap.get(targetModel);
+            matchType = "Exact";
+            
+            // Exact matches completely bypass verification checks
+            finalManufacturer = bestMatch.Primary_Manufacturer || "NotFound";
+            finalProductType = bestMatch.Primary_Product_Type || "NotFound";
+            
+            mfgVerifyLog = "Bypassed(Exact)";
+            prodVerifyLog = "Bypassed(Exact)";
+        } 
+        
+        // LAYER 2: The Descending Search Match (Requires String Cross-Validation)
+        else {
+            let tempStr = targetModel;
+
+            // FIX 3: ADDED CATCH-ALL COMMENT FOR SHORT STRINGS
+            // Note: Strings shorter than 3 characters will skip this loop entirely to prevent false positives.
+            while (tempStr.length >= 3 && !bestMatch) {
+                finalUsedSearchString = tempStr; 
+                
+                // FIX 4 CONT.: USE PRE-CLEANED ARRAY FOR O(1) REGEX PERFORMANCE
+                bestMatch = preCleanedDb.find(dbRow => {
+                    const cleanDbModel = dbRow.Cleaned_Model;
+                    if (cleanDbModel.length < 3) return false;
+                    
+                    return cleanDbModel === tempStr || cleanDbModel.startsWith(tempStr) || tempStr.startsWith(cleanDbModel);
+                });
+
+                if (!bestMatch) {
+                    tempStr = tempStr.slice(0, -1);
+                }
+            }
+
+            if (bestMatch) {
+                matchType = "Partial";
+                
+                const dbMfg = bestMatch.Primary_Manufacturer || "NotFound";
+                const dbProdType = bestMatch.Primary_Product_Type || "NotFound";
+                
+                // A. PARTIAL VALIDATION: Manufacturer Check (Exporter Name + Description Context)
+                const cleanExporterAndDesc = `${exporter} ${desc}`.toUpperCase();
+                if (dbMfg !== "NotFound" && (cleanExporterAndDesc.includes(clean(dbMfg)) || tokenMatch(dbMfg, cleanExporterAndDesc))) {
+                    finalManufacturer = dbMfg;
+                    mfgVerifyLog = "Verified";
+                } else {
+                    finalManufacturer = "NotFound"; 
+                    mfgVerifyLog = "Mismatch->NotFound";
+                }
+
+                // B. PARTIAL VALIDATION: Product Type Check (Product + Description + Product Category Context)
+                // UPGRADE: Added productCategory to check overall repeated context across all available columns
+                const cleanProductContext = `${rawProductCol} ${desc} ${productCategory}`.toUpperCase();
+                if (dbProdType !== "NotFound" && tokenMatch(dbProdType, cleanProductContext)) {
+                    finalProductType = dbProdType;
+                    prodVerifyLog = "Verified";
+                } else {
+                    // Fallback to original data instead of erasing the field
+                    finalProductType = rawProductCol; 
+                    prodVerifyLog = `Mismatch->Fallback(${rawProductCol})`;
+                }
+            }
+        }
+    }
+    
+    // Explicit cleanup for baseline unmapped items
+    if (matchType === "NotFound") {
+        finalManufacturer = "NotFound";
+        finalProductType = "NotFound";
+        finalCategory = "NotFound";
+        mfgVerifyLog = "NoModelMatch";
+        prodVerifyLog = "NoModelMatch";
+    } else {
+        // ==========================================
+        // --- NEW: APPLY SAM KEYWORD LOGIC ---
+        // ==========================================
+        const checkMfg = finalManufacturer.toUpperCase();
+        const checkProd = finalProductType.toUpperCase();
+
+        // 1. Check for 'Ours' first
+        if (checkMfg.includes("ROHDE") || checkMfg === "R&S") {
+            finalCategory = "Ours";
+        } 
+        // 2. Scan the Product Type for SAM keywords
+        else {
+            let isSam = false;
+            // Add or remove your target keywords right here:
+            const samKeywords = ["OSCILLOSCOPE", "ANALYZER", "METER", "GENERATOR", "POWER SUPPLY", "TESTER", "NETWORK"];
+            
+            for (const keyword of samKeywords) {
+                if (checkProd.includes(keyword)) {
+                    isSam = true;
+                    break;
+                }
+            }
+            finalCategory = isSam ? "SAM" : "Non-SAM";
+        }
+    }
+    // ==========================================
+
+    // Dynamic Database metrics for troubleshooting logs
+    const totalDbMatchesFound = bestMatch ? dbRows.filter(r => clean(r.Model_Number).startsWith(finalUsedSearchString)).length : 0;
+    const dbMatchedModelName = bestMatch ? bestMatch.Model_Number : "None";
+    
+    // Highly verbose troubleshooting string for detailed data debugging
+    const comprehensiveDebugLog = `Matches: ${totalDbMatchesFound} | DBModel: ${dbMatchedModelName} | SearchStr: ${finalUsedSearchString || "None"} | Status: ${matchType} | MfgCheck: ${mfgVerifyLog} | ProdCheck: ${prodVerifyLog}`;
+
+    // --- STEP C: Merge and Route the Data ---
+    if (matchType !== "NotFound") {
+        found_list.push({
+            ...originalRow,
+            Raw_Model: rawModel,
+            Final_Manufacturer: finalManufacturer,
+            Final_Product_Type: finalProductType,
+            // UPGRADE: Only use DB Model for Exact matches. Keep Raw_Model for Partial matches.
+            Final_Model: matchType === "Exact" ? bestMatch.Model_Number : rawModel,
+            Match_Status: matchType, 
+            Category: finalCategory,
+            Debug_Log: comprehensiveDebugLog
+        });
+    } else {
+        not_found_list.push({
+            ...originalRow,
+            Raw_Model: rawModel || "NotFound",
+            Final_Manufacturer: "NotFound",
+            Final_Product_Type: "NotFound",
+            Final_Model: rawModel || "NotFound",
+            Match_Status: "NotFound",
+            Category: finalCategory,
+            Debug_Log: comprehensiveDebugLog
+        });
+    }
+}
+
+// 5. Output perfectly native n8n items
+const all_items = [...found_list, ...not_found_list];
+return all_items.map(row => ({ json: row }));

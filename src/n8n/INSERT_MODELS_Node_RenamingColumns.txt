@@ -1,0 +1,27 @@
+return $input.all().map(item => {
+  // 1. Grab the clean data (handles both flat data or 'd' wrapped data automatically)
+  const data = item.json.d || item.json;
+
+  // 2. Extract and format the specific columns (uppercasing them)
+  const model = data.Model ? String(data.Model).toUpperCase() : "";
+  const mfg = data.Manufacturer ? String(data.Manufacturer).toUpperCase() : "";
+  const pType = data.Product_Type ? String(data.Product_Type).toUpperCase() : "";
+
+  // 3. Escape single quotes to prevent SQL syntax crashes 
+  const safeModel = model.replace(/'/g, "''");
+  const safeMfg = mfg.replace(/'/g, "''");
+  const safePType = pType.replace(/'/g, "''");
+
+  // 4. Build the exact SQL Insert statement
+ const sqlQuery = `INSERT OR IGNORE INTO Models (Model_Number, Primary_Manufacturer, Primary_Product_Type) VALUES ('${safeModel}', '${safeMfg}', '${safePType}');`;
+
+  // 5. Output only the clean data and the final query
+  return {
+    json: {
+      Model_Number: model,
+      Primary_Manufacturer: mfg,
+      Primary_Product_Type: pType,
+      query: sqlQuery
+    }
+  };
+});

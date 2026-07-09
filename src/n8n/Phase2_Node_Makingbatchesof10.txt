@@ -1,0 +1,20 @@
+// 1. Grab all the NotFound items
+const allItems = $input.all();
+const batchSize = 5;
+const finalBatches = [];
+
+// 2. Loop through them and chop them into blocks of 10
+for (let i = 0; i < allItems.length; i += batchSize) {
+    // Grab 10 items and strip them down to just their JSON data
+    const chunk = allItems.slice(i, i + batchSize).map(item => item.json);
+    
+    // 3. Package them into a single n8n item called "batch_records"
+    finalBatches.push({
+        json: {
+            batch_records: chunk
+        }
+    });
+}
+
+// 4. Output the perfect packages
+return finalBatches;

@@ -1,0 +1,5 @@
+// Adds a global unique row_id to all 30,000 items
+return $input.all().map((item, index) => {
+    item.json.row_id = "row_" + index + "_" + Date.now();
+    return item;
+});

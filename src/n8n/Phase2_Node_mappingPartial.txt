@@ -1,0 +1,31 @@
+// Grab all incoming data
+const items = $input.all();
+
+// UPGRADED FAILSAFE: Detects if n8n sent 0 items, OR if it sent 1 "Ghost Row" {}
+if (items.length === 0 || (items.length === 1 && Object.keys(items[0].json).length === 0)) {
+    return []; // Returns a true blank array to kill the ghost row!
+}
+
+return items.map(item => {
+    let row = item.json;
+
+    // 1. Rename / Map your Final_ columns to the clean AI columns
+    row.Manufacturer = row.Final_Manufacturer || "NotFound";
+    row.Product_Type = row.Final_Product_Type || "NotFound";
+    row.Model = row.Final_Model || row.Raw_Model || "NotFound";
+
+    // 2. Directly map the Category from the Master DB node to the Competitor_Check
+    row.Competitor_Check = row.Category || "NotFound";
+
+    // 3. Apply the Partial score and reason
+    row.Confidence_Score = 0.8;
+    row.Match_Reason = "Partial DB Match (Bypassed AI)";
+
+    // 4. Cleanup the messy columns so the final output is pristine
+    delete row.Final_Manufacturer;
+    delete row.Final_Product_Type;
+    delete row.Final_Model;
+    delete row.Category; 
+
+    return { json: row };
+});

@@ -1,0 +1,13 @@
+// Keeps ONLY the columns the AI needs to save API token costs
+return $input.all().map(item => {
+    return {
+        json: {
+            // CRITICAL: We must keep the row_id so we can merge it later!
+            row_id: item.json.row_id,
+            Raw_Model: item.json.Raw_Model || "NotFound",
+            Product: item.json.Product || item.json.product || "",
+            Product_Description: item.json["Product Description"] || item.json.Description || "",
+            Exporter_Name: item.json["Exporter Name"] || item.json.exporter_name || ""
+        }
+    };
+});

@@ -1,0 +1,1 @@
+cmd.exe /c ""%USERPROFILE%\AppData\Local\Programs\KNIME\knime.exe" -nosplash --launcher.suppressErrors -consoleLog -application com.nodepit.batch.application.NodePitBatchExecutor -reset "%USERPROFILE%\knime-workspace\Final_Process""

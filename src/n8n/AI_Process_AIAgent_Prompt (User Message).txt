@@ -1,0 +1,4 @@
+Process this array of trade records and extract the classification data according to your system instructions. 
+CRITICAL: You must return exactly the same number of objects as you receive in this array.
+
+{{ JSON.stringify($json.batch_records) }}

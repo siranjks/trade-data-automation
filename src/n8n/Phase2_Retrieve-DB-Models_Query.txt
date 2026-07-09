@@ -1,0 +1,1 @@
+SELECT Model_Number, Primary_Manufacturer, Primary_Product_Type FROM Models;

@@ -1,0 +1,19 @@
+// 1. Grab all the combined items coming out of the loop's 'done' branch
+const allItems = $input.all();
+
+// 2. Filter out ONLY the empty {} objects
+const cleanData = allItems.filter(item => {
+    const data = item.json;
+    
+    // If it is an array (even an empty one []), keep it!
+    if (Array.isArray(data)) return true;
+    
+    // If it is a standard object and has zero keys {}, kick it out!
+    if (Object.keys(data).length === 0) return false;
+    
+    // Otherwise, keep the row!
+    return true;
+});
+
+// 3. Pass the clean rows to the File converter
+return cleanData;
