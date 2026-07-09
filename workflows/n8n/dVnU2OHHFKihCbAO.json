@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-25T06:52:33.142Z",
+  "updatedAt": "2026-07-09T05:27:35.852Z",
   "createdAt": "2026-06-04T08:23:00.815Z",
   "id": "dVnU2OHHFKihCbAO",
   "name": "Phase2_Classification",
@@ -126,19 +126,6 @@
       ],
       "id": "e3e231f9-da5a-41de-8409-988ff282a0fa",
       "name": "Split Out1"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Adds a global unique row_id to all 30,000 items\nreturn $input.all().map((item, index) => {\n    item.json.row_id = \"row_\" + index + \"_\" + Date.now();\n    return item;\n});"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        688,
-        272
-      ],
-      "id": "d89884ce-7f98-4107-80dd-f435836ea6e8",
-      "name": "Code in JavaScript5"
     },
     {
       "parameters": {
@@ -412,6 +399,19 @@
       ],
       "id": "e0a4d61d-0a22-468c-8cc1-d830b42ac668",
       "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Adds a global unique row_id to all 30,000 items\nreturn $input.all().map((item, index) => {\n    item.json.row_id = \"row_\" + index + \"_\" + Date.now();\n    return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        272
+      ],
+      "id": "d89884ce-7f98-4107-80dd-f435836ea6e8",
+      "name": "Add Unique ID"
     }
   ],
   "connections": {
@@ -460,18 +460,7 @@
       "main": [
         [
           {
-            "node": "Code in JavaScript5",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript5": {
-      "main": [
-        [
-          {
-            "node": "SplitInBatches-Advanced",
+            "node": "Add Unique ID",
             "type": "main",
             "index": 0
           }
@@ -670,6 +659,17 @@
           }
         ]
       ]
+    },
+    "Add Unique ID": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches-Advanced",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -684,9 +684,9 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "dcc320da-19b9-4ba4-a032-034d658c5b81",
-  "activeVersionId": "dcc320da-19b9-4ba4-a032-034d658c5b81",
-  "versionCounter": 732,
+  "versionId": "28b88c99-ef57-4a68-8a69-908eaceb7a8c",
+  "activeVersionId": "28b88c99-ef57-4a68-8a69-908eaceb7a8c",
+  "versionCounter": 741,
   "triggerCount": 0,
   "tags": [],
   "shared": [
@@ -709,7 +709,7 @@
     }
   ],
   "versionMetadata": {
-    "name": "Version dcc320da",
+    "name": "Version 28b88c99",
     "description": ""
   }
 }

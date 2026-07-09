@@ -1,76 +1,37 @@
 {
-  "updatedAt": "2026-06-09T06:07:56.549Z",
+  "updatedAt": "2026-07-09T06:31:38.211Z",
   "createdAt": "2026-05-28T05:49:18.153Z",
   "id": "OH3HqIRkz0m1PPnF",
-  "name": "AI Process",
+  "name": "AI_Process",
   "description": null,
   "active": true,
   "isArchived": false,
   "nodes": [
     {
       "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "list",
-          "value": "gpt-4.1-mini"
-        },
-        "builtInTools": {},
-        "options": {
-          "maxTokens": 4096
-        }
+        "inputSource": "passthrough"
       },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.3,
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
       "position": [
-        1360,
-        608
+        -80,
+        80
       ],
-      "id": "e3afc4ff-fdbb-495f-8747-1f6b5dac7e0d",
-      "name": "OpenAI Chat Model",
-      "credentials": {
-        "openAiApi": {
-          "id": "80tePkx9BfAbjOE8",
-          "name": "OpenAI account"
-        }
-      }
+      "id": "6bbb7521-c7db-430b-9a86-b68091fd3949",
+      "name": "When Executed by Another Workflow"
     },
     {
       "parameters": {
-        "model": "llama-3.1-8b-instant",
-        "options": {}
+        "jsCode": "// 1. Grab the single output box from the AI Agent\nconst aiResponse = $input.first().json.output;\n\n// 2. Map over the array of 10 answers and wrap each one in n8n's required 'json' format\nconst unbundledItems = aiResponse.map(item => {\n    return {\n        json: item\n    };\n});\n\n// 3. Return the 10 separate rows to the workflow\nreturn unbundledItems;"
       },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        1568,
-        592
+        624,
+        80
       ],
-      "id": "ccdbe204-778b-444b-a130-6b8baddf53b7",
-      "name": "Groq Chat Model1",
-      "credentials": {
-        "groqApi": {
-          "id": "4WArdgo48WBegqtY",
-          "name": "Groq account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Process this array of trade records and extract the classification data according to your system instructions:\n\n{{ JSON.stringify($input.all().map(item => item.json)) }}",
-        "hasOutputParser": true,
-        "options": {
-          "systemMessage": "### ROLE\nYou are an Expert Data Classification & Extraction Agent specializing in the Test & Measurement equipment market. Your primary objective is to analyze global custom trade data to identify competitors, product types, and specific hardware models for our company's market intelligence. Our company is **Rohde & Schwarz** (also known as R&S).\n\n### CONTEXT & WORKFLOW\nYou will receive an array of raw trade data JSON records that failed local database matching. You do not have web search access. For each record, you must rely entirely on your deep internal knowledge of the Test & Measurement industry and contextual clues within the provided JSON to determine the true manufacturer and product category. \n\n1. **Structural Feature Extraction & Pre-Processing:**\n   - **Model String:** Look at the `Raw_Model` and `Product_Description` fields. Ensure you are evaluating the base hardware identifier. Ignore quantity markers (e.g., 'X2PCS') or shipping modifiers.\n   - **Brand Identification:** Scan the `Product_Description` and `Exporter_Name`. In trade data, the manufacturer's name often appears immediately before the model number. Strip away broker phrasing (\"On Behalf Of\") and legal entity suffixes (\"LLC\", \"Kft\", \"Sarl\", \"Ltd\").\n\n2. **Internal Knowledge Retrieval & Verification:**\n   - Cross-reference the `Raw_Model` and extracted entity names against your internal training data. \n   - Determine the **Original Equipment Manufacturer (OEM)**. Use your knowledge to separate third-party distributors or logistics brokers (e.g., \"Amazon\", \"Mouser Electronics\", \"Avia Fed Service\") from the actual hardware creator.\n   - Verify the exact equipment category (e.g., \"Digital Multimeter\", \"Signal Generator\", \"Oscilloscope\").\n\n3. **Conflict Resolution:**\n   - If your internal knowledge confidently identifies the exact model as a completely different product type than what is listed in the raw `Product` column, trust your internal knowledge.\n   - If your internal knowledge cannot confidently identify the model, fallback entirely to the raw `Product` and `Exporter_Name` fields provided in the JSON to formulate your best educated classification.\n\n### CLASSIFICATION RULES & SCHEMA\nFor every record in the input array, you must output a corresponding object with the following exact keys:\n\n- **row_id:** You MUST output the exact `row_id` string provided in the input data. Do not alter it.\n- **Manufacturer:** Output the clean, primary brand name of the equipment creator (e.g., \"Rigol\", \"National Instruments\", \"Keysight\"). If completely undiscoverable, output \"NotFound\".\n- **Product_Type:** Classify the core equipment instrument category using standardized industry terminology (e.g., \"Oscilloscope\", \"Signal Generator\").\n- **Model:** Output the cleaned official model number. If your internal knowledge confirms the official formatting, use it. Otherwise, retain the `Raw_Model`.\n- **Competitor_Check:** Enforce this strict prioritization matrix:\n  - \"Ours\" -> If the identified manufacturer is **Rohde & Schwarz** (or R&S).\n  - \"SAM\" -> If the classified category represents a core Test & Measurement instrument (e.g., Oscilloscopes, Signal Generators, Spectrum Analyzers, Multimeters). It MUST be classified as \"SAM\" even if the specific manufacturer brand is currently unverified.\n  - \"Non-SAM\" -> If the product belongs to an unrelated industry vertical (e.g., medical, human body analyzers, consumer commodities, raw materials).\n- **Confidence_Score:** A decimal value between 0.00 and 1.00 indicating your certainty in the Manufacturer and Product Type classification.\n- **Match_Reason:** Provide a short, precise explanation (Max 15 words) of how the record was classified (e.g., \"Identified Rigol model via internal knowledge\", or \"Fallback to raw exporter name due to unrecognized model\").\n\n### OUTPUT PROTOCOL\n- You must process EVERY SINGLE object in the incoming input data array. Do not skip any rows.\n- **CRITICAL FORMATTING RULE:** Output an array of JSON objects matching the required schema exactly.\n- **DO NOT** wrap your response in markdown code blocks (e.g., do not use ```json).\n- **DO NOT** include conversational text, pleasantries, or commentary. Output raw JSON only."
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3,
-      "position": [
-        1632,
-        304
-      ],
-      "id": "336b8ffc-8394-4efc-8abe-c8c05684f428",
-      "name": "AI Agent"
+      "id": "e3d6ca2a-dbaf-405d-b64c-8237a6f03f83",
+      "name": "Unwrap"
     },
     {
       "parameters": {
@@ -80,63 +41,29 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        1808,
-        576
+        416,
+        368
       ],
-      "id": "c3a9247b-5c8f-4a5b-aaab-c9632b2dd101",
-      "name": "Structured Output Parser1"
+      "id": "783ac625-47bb-409d-a4c3-1014831e452b",
+      "name": "Structured Output Parser"
     },
     {
       "parameters": {
-        "jsCode": "// Grabs the array the AI made and turns it back into individual n8n items\nreturn $input.first().json.output.map(item => {\n    return { json: item };\n});"
+        "promptType": "define",
+        "text": "=Process this array of trade records and extract the classification data according to your system instructions. \nCRITICAL: You must return exactly the same number of objects as you receive in this array.\n\n{{ JSON.stringify($json.batch_records) }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "### ROLE\nYou are an Expert Data Classification & Extraction Agent specializing in the Test & Measurement equipment market. Your primary objective is to analyze global custom trade data to identify competitors, product types, and specific hardware models for our company's market intelligence. Our company is **Rohde & Schwarz** (also known as R&S).\n\n### CONTEXT & WORKFLOW\nYou will receive an array of raw trade data JSON records that failed local database matching. You do not have web search access. For each record, you must rely entirely on your deep internal knowledge of the Test & Measurement industry and contextual clues within the provided JSON to determine the true manufacturer and product category. \n\n1. **Structural Feature Extraction & Pre-Processing:**\n   - **Model String:** Look at the `Raw_Model` and `Product_Description` fields. Ensure you are evaluating the base hardware identifier. Ignore quantity markers (e.g., 'X2PCS') or shipping modifiers.\n   - **Brand Identification:** Scan the `Product_Description` and `Exporter_Name`. In trade data, the manufacturer's name often appears immediately before the model number. Strip away broker phrasing (\"On Behalf Of\") and legal entity suffixes (\"LLC\", \"Kft\", \"Sarl\", \"Ltd\").\n\n2. **Internal Knowledge Retrieval & Verification:**\n   - Cross-reference the `Raw_Model` and extracted entity names against your internal training data. \n   - Determine the **Original Equipment Manufacturer (OEM)**. Use your knowledge to separate third-party distributors or logistics brokers (e.g., \"Amazon\", \"Mouser Electronics\", \"Avia Fed Service\") from the actual hardware creator.\n   - Verify the exact equipment category (e.g., \"Digital Multimeter\", \"Signal Generator\", \"Oscilloscope\").\n\n3. **Conflict Resolution:**\n   - If your internal knowledge confidently identifies the exact model as a completely different product type than what is listed in the raw `Product` column, trust your internal knowledge.\n   - If your internal knowledge cannot confidently identify the model, fallback entirely to the raw `Product` and `Exporter_Name` fields provided in the JSON to formulate your best educated classification.\n\n### CLASSIFICATION RULES & SCHEMA\nFor every record in the input array, you must output a corresponding object with the following exact keys:\n\n- **row_id:** You MUST output the exact `row_id` string provided in the input data. Do not alter it.\n- **Manufacturer:** Output the clean, primary brand name of the equipment creator (e.g., \"Rigol\", \"National Instruments\", \"Keysight\"). If completely undiscoverable, output \"NotFound\".\n- **Product_Type:** Classify the core equipment instrument category using standardized industry terminology (e.g., \"Oscilloscope\", \"Signal Generator\").\n- **Model:** Output the cleaned official model number. If your internal knowledge confirms the official formatting, use it. Otherwise, retain the `Raw_Model`.\n- **Competitor_Check:** Enforce this strict prioritization matrix:\n  - \"Ours\" -> If the identified manufacturer is **Rohde & Schwarz** (or R&S).\n  - \"SAM\" -> If the classified category represents a core Test & Measurement instrument (e.g., Oscilloscopes, Signal Generators, Spectrum Analyzers, Multimeters). It MUST be classified as \"SAM\" even if the specific manufacturer brand is currently unverified.\n  - \"Non-SAM\" -> If the product belongs to an unrelated industry vertical (e.g., medical, human body analyzers, consumer commodities, raw materials).\n- **Confidence_Score:** A decimal value between 0.00 and 1.00 indicating your certainty in the Manufacturer and Product Type classification.\n- **Match_Reason:** Provide a short, precise explanation (Max 15 words) of how the record was classified (e.g., \"Identified Rigol model via internal knowledge\", or \"Fallback to raw exporter name due to unrecognized model\").\n\n### OUTPUT PROTOCOL & EXPECTED FORMAT\n- You must process EVERY SINGLE object in the incoming input data array. Do not skip any rows.\n- CRITICAL FORMATTING RULE: You must return a single, raw JSON array containing your classification objects.\n- DO NOT wrap your response in markdown code blocks (e.g., do not use ```json).\n- DO NOT include conversational text, pleasantries, or commentary. Output raw JSON only.\n\nYour final output must strictly follow this exact JSON structure:\n[\n  {\n    \"row_id\": \"Exact string from input\",\n    \"Manufacturer\": \"Brand Name or 'NotFound'\",\n    \"Product_Type\": \"Instrument Category\",\n    \"Model\": \"Cleaned Model Number\",\n    \"Competitor_Check\": \"Ours, SAM, or Non-SAM\",\n    \"Confidence_Score\": 0.95,\n    \"Match_Reason\": \"Short explanation max 15 words\"\n  }\n]"
+        }
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
       "position": [
-        2016,
-        768
+        224,
+        80
       ],
-      "id": "43d38ec7-12d3-49a2-9b9f-9bc527038352",
-      "name": "Code in JavaScript6"
-    },
-    {
-      "parameters": {
-        "inputSource": "passthrough"
-      },
-      "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1.1,
-      "position": [
-        -80,
-        48
-      ],
-      "id": "6bbb7521-c7db-430b-9a86-b68091fd3949",
-      "name": "When Executed by Another Workflow"
-    },
-    {
-      "parameters": {
-        "jsCode": "// 1. Grab the package of items we squashed in the Main Workflow\nconst batchRecords = $input.first().json.batch_records;\n\n// 2. Loop through the batch and generate a fake \"AI\" response for every single row\nconst simulatedAiResponse = batchRecords.map(record => {\n    return {\n        // CRITICAL: We pass the exact row_id back so the Merge node doesn't break\n        \"row_id\": record.row_id, \n        \n        // Simulating the exact schema you built for Groq\n        \"Manufacturer\": \"Test_Brand_Corp\",\n        \"Product_Type\": \"Simulated Instrument\",\n        \"Model\": record.Raw_Model || \"Mock-Model-X\",\n        \"Competitor_Check\": \"SAM\",\n        \"Confidence_Score\": 0.99,\n        \"Match_Reason\": \"Simulated test run to verify loop plumbing.\"\n    };\n});\n\n// 3. Package the fake answers into the exact 'output' envelope the Unwrap node is looking for\nreturn [{\n    json: {\n        output: simulatedAiResponse\n    }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        336,
-        768
-      ],
-      "id": "c4d0bdab-d981-4255-a3b3-574412da5a3a",
-      "name": "AI Output Simulation"
-    },
-    {
-      "parameters": {
-        "jsCode": "// 1. Grab the single output box from the AI Agent\nconst aiResponse = $input.first().json.output;\n\n// 2. Map over the array of 10 answers and wrap each one in n8n's required 'json' format\nconst unbundledItems = aiResponse.map(item => {\n    return {\n        json: item\n    };\n});\n\n// 3. Return the 10 separate rows to the workflow\nreturn unbundledItems;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        656,
-        48
-      ],
-      "id": "e3d6ca2a-dbaf-405d-b64c-8237a6f03f83",
-      "name": "Unwrap"
+      "id": "e6c7505b-7f27-4acf-a8ca-995efef89c5d",
+      "name": "AI Agent"
     },
     {
       "parameters": {
@@ -155,147 +82,26 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        -32,
-        400
+        112,
+        368
       ],
       "id": "2e35e143-0893-4d59-a32d-30555e6c3846",
-      "name": "OpenAI Chat Model1",
+      "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
           "id": "80tePkx9BfAbjOE8",
           "name": "OpenAI account"
         }
       }
-    },
-    {
-      "parameters": {
-        "model": "llama-3.1-8b-instant",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
-      "typeVersion": 1,
-      "position": [
-        176,
-        384
-      ],
-      "id": "7e7916a6-0b24-4bc6-824a-498e000369af",
-      "name": "Groq Chat Model",
-      "credentials": {
-        "groqApi": {
-          "id": "4WArdgo48WBegqtY",
-          "name": "Groq account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Process this array of trade records and extract the classification data according to your system instructions. \nCRITICAL: You must return exactly the same number of objects as you receive in this array.\n\n{{ JSON.stringify($json.batch_records) }}",
-        "hasOutputParser": true,
-        "options": {
-          "systemMessage": "### ROLE\nYou are an Expert Data Classification & Extraction Agent specializing in the Test & Measurement equipment market. Your primary objective is to analyze global custom trade data to identify competitors, product types, and specific hardware models for our company's market intelligence. Our company is **Rohde & Schwarz** (also known as R&S).\n\n### CONTEXT & WORKFLOW\nYou will receive an array of raw trade data JSON records that failed local database matching. You do not have web search access. For each record, you must rely entirely on your deep internal knowledge of the Test & Measurement industry and contextual clues within the provided JSON to determine the true manufacturer and product category. \n\n1. **Structural Feature Extraction & Pre-Processing:**\n   - **Model String:** Look at the `Raw_Model` and `Product_Description` fields. Ensure you are evaluating the base hardware identifier. Ignore quantity markers (e.g., 'X2PCS') or shipping modifiers.\n   - **Brand Identification:** Scan the `Product_Description` and `Exporter_Name`. In trade data, the manufacturer's name often appears immediately before the model number. Strip away broker phrasing (\"On Behalf Of\") and legal entity suffixes (\"LLC\", \"Kft\", \"Sarl\", \"Ltd\").\n\n2. **Internal Knowledge Retrieval & Verification:**\n   - Cross-reference the `Raw_Model` and extracted entity names against your internal training data. \n   - Determine the **Original Equipment Manufacturer (OEM)**. Use your knowledge to separate third-party distributors or logistics brokers (e.g., \"Amazon\", \"Mouser Electronics\", \"Avia Fed Service\") from the actual hardware creator.\n   - Verify the exact equipment category (e.g., \"Digital Multimeter\", \"Signal Generator\", \"Oscilloscope\").\n\n3. **Conflict Resolution:**\n   - If your internal knowledge confidently identifies the exact model as a completely different product type than what is listed in the raw `Product` column, trust your internal knowledge.\n   - If your internal knowledge cannot confidently identify the model, fallback entirely to the raw `Product` and `Exporter_Name` fields provided in the JSON to formulate your best educated classification.\n\n### CLASSIFICATION RULES & SCHEMA\nFor every record in the input array, you must output a corresponding object with the following exact keys:\n\n- **row_id:** You MUST output the exact `row_id` string provided in the input data. Do not alter it.\n- **Manufacturer:** Output the clean, primary brand name of the equipment creator (e.g., \"Rigol\", \"National Instruments\", \"Keysight\"). If completely undiscoverable, output \"NotFound\".\n- **Product_Type:** Classify the core equipment instrument category using standardized industry terminology (e.g., \"Oscilloscope\", \"Signal Generator\").\n- **Model:** Output the cleaned official model number. If your internal knowledge confirms the official formatting, use it. Otherwise, retain the `Raw_Model`.\n- **Competitor_Check:** Enforce this strict prioritization matrix:\n  - \"Ours\" -> If the identified manufacturer is **Rohde & Schwarz** (or R&S).\n  - \"SAM\" -> If the classified category represents a core Test & Measurement instrument (e.g., Oscilloscopes, Signal Generators, Spectrum Analyzers, Multimeters). It MUST be classified as \"SAM\" even if the specific manufacturer brand is currently unverified.\n  - \"Non-SAM\" -> If the product belongs to an unrelated industry vertical (e.g., medical, human body analyzers, consumer commodities, raw materials).\n- **Confidence_Score:** A decimal value between 0.00 and 1.00 indicating your certainty in the Manufacturer and Product Type classification.\n- **Match_Reason:** Provide a short, precise explanation (Max 15 words) of how the record was classified (e.g., \"Identified Rigol model via internal knowledge\", or \"Fallback to raw exporter name due to unrecognized model\").\n\n### OUTPUT PROTOCOL & EXPECTED FORMAT\n- You must process EVERY SINGLE object in the incoming input data array. Do not skip any rows.\n- CRITICAL FORMATTING RULE: You must return a single, raw JSON array containing your classification objects.\n- DO NOT wrap your response in markdown code blocks (e.g., do not use ```json).\n- DO NOT include conversational text, pleasantries, or commentary. Output raw JSON only.\n\nYour final output must strictly follow this exact JSON structure:\n[\n  {\n    \"row_id\": \"Exact string from input\",\n    \"Manufacturer\": \"Brand Name or 'NotFound'\",\n    \"Product_Type\": \"Instrument Category\",\n    \"Model\": \"Cleaned Model Number\",\n    \"Competitor_Check\": \"Ours, SAM, or Non-SAM\",\n    \"Confidence_Score\": 0.95,\n    \"Match_Reason\": \"Short explanation max 15 words\"\n  }\n]"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3,
-      "position": [
-        224,
-        80
-      ],
-      "id": "e6c7505b-7f27-4acf-a8ca-995efef89c5d",
-      "name": "AI Agent1"
-    },
-    {
-      "parameters": {
-        "schemaType": "manual",
-        "inputSchema": "{\n  \"type\": \"array\",\n  \"description\": \"The list of processed trade records containing extracted models and classifications.\",\n  \"items\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"row_id\": {\n        \"type\": \"string\",\n        \"description\": \"The exact row_id provided in the input data.\"\n      },\n      \"Manufacturer\": {\n        \"type\": \"string\",\n        \"description\": \"The clean, primary brand name of the equipment creator.\"\n      },\n      \"Product_Type\": {\n        \"type\": \"string\",\n        \"description\": \"The classified core equipment instrument category.\"\n      },\n      \"Model\": {\n        \"type\": \"string\",\n        \"description\": \"The isolated hardware/software model number string, or 'NotFound'.\"\n      },\n      \"Competitor_Check\": {\n        \"type\": \"string\",\n        \"enum\": [\n          \"Ours\",\n          \"SAM\",\n          \"Non-SAM\"\n        ]\n      },\n      \"Confidence_Score\": {\n        \"type\": \"number\",\n        \"minimum\": 0,\n        \"maximum\": 1\n      },\n      \"Match_Reason\": {\n        \"type\": \"string\",\n        \"description\": \"A short precise explanation of how the record was classified.\"\n      }\n    },\n    \"required\": [\n      \"row_id\",\n      \"Manufacturer\",\n      \"Product_Type\",\n      \"Model\",\n      \"Competitor_Check\",\n      \"Confidence_Score\",\n      \"Match_Reason\"\n    ],\n    \"additionalProperties\": false\n  }\n}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.3,
-      "position": [
-        416,
-        368
-      ],
-      "id": "783ac625-47bb-409d-a4c3-1014831e452b",
-      "name": "Structured Output Parser"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Grabs the array the AI made and turns it back into individual n8n items\nreturn $input.first().json.output.map(item => {\n    return { json: item };\n});"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        688,
-        752
-      ],
-      "id": "fa50b14f-d4ab-4c9e-80de-0aa2030ed36d",
-      "name": "Code in JavaScript"
-    },
-    {
-      "parameters": {
-        "content": "OLD"
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        2016,
-        272
-      ],
-      "id": "a02e8919-4843-4a92-8653-84a13118c974",
-      "name": "Sticky Note"
     }
   ],
   "connections": {
-    "OpenAI Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent": {
-      "main": [
-        []
-      ]
-    },
-    "Structured Output Parser1": {
-      "ai_outputParser": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_outputParser",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "When Executed by Another Workflow": {
       "main": [
         [
           {
-            "node": "AI Agent1",
+            "node": "AI Agent",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Output Simulation": {
-      "main": [
-        []
-      ]
-    },
-    "OpenAI Chat Model1": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent1",
-            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -305,19 +111,30 @@
       "ai_outputParser": [
         [
           {
-            "node": "AI Agent1",
+            "node": "AI Agent",
             "type": "ai_outputParser",
             "index": 0
           }
         ]
       ]
     },
-    "AI Agent1": {
+    "AI Agent": {
       "main": [
         [
           {
             "node": "Unwrap",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -331,9 +148,9 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "70d07534-8e6f-43f2-ae55-d9525f7bbb2d",
-  "activeVersionId": "70d07534-8e6f-43f2-ae55-d9525f7bbb2d",
-  "versionCounter": 96,
+  "versionId": "11cef143-bcbb-43b1-bd2c-0e6c400f48d5",
+  "activeVersionId": "11cef143-bcbb-43b1-bd2c-0e6c400f48d5",
+  "versionCounter": 120,
   "triggerCount": 0,
   "tags": [],
   "shared": [
@@ -356,7 +173,7 @@
     }
   ],
   "versionMetadata": {
-    "name": "global-test-june9",
+    "name": "Version 11cef143",
     "description": ""
   }
 }

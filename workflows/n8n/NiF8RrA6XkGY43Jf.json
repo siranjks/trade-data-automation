@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-30T09:26:51.188Z",
+  "updatedAt": "2026-07-09T06:36:45.932Z",
   "createdAt": "2026-06-04T08:34:18.628Z",
   "id": "NiF8RrA6XkGY43Jf",
   "name": "Phase1_Main",
@@ -22,19 +22,6 @@
       "id": "1ddaa33b-0dd5-4a8d-a366-5994704eb30e",
       "name": "Webhook1",
       "webhookId": "85bcb600-dbc0-4ef0-ab46-f0670db6d23f"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        368,
-        -32
-      ],
-      "id": "3f44dbf3-2f80-44cc-9b61-d4dc3c5e8d0b",
-      "name": "Loop Over Items2"
     },
     {
       "parameters": {
@@ -97,7 +84,7 @@
     {
       "parameters": {
         "operation": "write",
-        "fileName": "={{ $('Extract from File').first().json.data.processed_location + '/'+ $('Loop Over Items2').first().binary.data.fileName.replace(/\\.([^.]+)$/, '_finished.$1') }}",
+        "fileName": "={{ $('Extract from File').first().json.data.processed_location + '/'+ $('Loop Over Items').first().binary.data.fileName.replace(/\\.([^.]+)$/, '_finished.$1') }}",
         "options": {}
       },
       "type": "n8n-nodes-base.readWriteFile",
@@ -108,19 +95,6 @@
       ],
       "id": "114e5136-d505-4fa7-8141-69fc421965bd",
       "name": "Write ALL OUTPUTS"
-    },
-    {
-      "parameters": {
-        "command": "cmd.exe /c \"\"%USERPROFILE%\\AppData\\Local\\Programs\\KNIME\\knime.exe\" -nosplash -consoleLog -application com.nodepit.batch.application.NodePitBatchExecutor --reset \"%USERPROFILE%\\knime-workspace\\Final_Process\"\""
-      },
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        1440,
-        672
-      ],
-      "id": "5980b924-1f5c-46fb-866c-3100b9aea4a5",
-      "name": "Execute Command"
     },
     {
       "parameters": {
@@ -135,19 +109,6 @@
       ],
       "id": "ee636c2d-df7f-43fb-8406-725e39667b26",
       "name": "Convert to File"
-    },
-    {
-      "parameters": {
-        "command": "=cmd.exe /c \"\"%USERPROFILE%\\AppData\\Local\\Programs\\KNIME\\knime.exe\" -nosplash --launcher.suppressErrors -consoleLog -application com.nodepit.batch.application.NodePitBatchExecutor -reset \"%USERPROFILE%\\knime-workspace\\Final_Process\"\""
-      },
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        720,
-        -288
-      ],
-      "id": "87f0d8c9-a93d-436f-9fb9-b245301909a4",
-      "name": "Execute Command1"
     },
     {
       "parameters": {
@@ -179,18 +140,29 @@
     },
     {
       "parameters": {
-        "operation": "write",
-        "fileName": "={{ 'C:/n8n-local/data/Processed/' + $('Loop Over Items2').first().binary.data.fileName.replace(/\\.([^.]+)$/, '_finished.$1') }}",
         "options": {}
       },
-      "type": "n8n-nodes-base.readWriteFile",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        368,
+        -32
+      ],
+      "id": "3f44dbf3-2f80-44cc-9b61-d4dc3c5e8d0b",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "command": "=cmd.exe /c \"\"%USERPROFILE%\\AppData\\Local\\Programs\\KNIME\\knime.exe\" -nosplash --launcher.suppressErrors -consoleLog -application com.nodepit.batch.application.NodePitBatchExecutor -reset \"%USERPROFILE%\\knime-workspace\\Final_Process\"\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        1392,
-        -320
+        720,
+        -288
       ],
-      "id": "4c5fda20-6018-4e35-ba64-70724bfb7cdd",
-      "name": "Write ALL OUTPUTS1"
+      "id": "87f0d8c9-a93d-436f-9fb9-b245301909a4",
+      "name": "Execute Command"
     }
   ],
   "connections": {
@@ -209,25 +181,7 @@
       "main": [
         [
           {
-            "node": "Loop Over Items2",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Over Items2": {
-      "main": [
-        [
-          {
-            "node": "Execute Command1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Call 'Phase2_Classification'",
+            "node": "Loop Over Items",
             "type": "main",
             "index": 0
           }
@@ -249,7 +203,7 @@
       "main": [
         [
           {
-            "node": "Loop Over Items2",
+            "node": "Loop Over Items",
             "type": "main",
             "index": 0
           }
@@ -288,6 +242,24 @@
           }
         ]
       ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Phase2_Classification'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -297,9 +269,9 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "97df64ff-a5e0-48c1-ae07-2c1a05f180b1",
-  "activeVersionId": "97df64ff-a5e0-48c1-ae07-2c1a05f180b1",
-  "versionCounter": 161,
+  "versionId": "bcc6f02f-49cd-4a29-99c5-111eae1fa860",
+  "activeVersionId": "bcc6f02f-49cd-4a29-99c5-111eae1fa860",
+  "versionCounter": 175,
   "triggerCount": 1,
   "tags": [],
   "shared": [
@@ -322,7 +294,7 @@
     }
   ],
   "versionMetadata": {
-    "name": "Version 97df64ff",
+    "name": "Version bcc6f02f",
     "description": ""
   }
 }
